@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>経理AIエージェント デモ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222533;
+    --border: #2e3247;
+    --accent: #6c63ff;
+    --accent2: #00d9a5;
+    --warn: #ffb547;
+    --danger: #ff5f5f;
+    --text: #e8eaf6;
+    --muted: #7b80a0;
+    --font: 'Noto Sans JP', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Layout */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  header h1 { font-size: 15px; font-weight: 500; letter-spacing: 0.02em; }
+  header span { font-size: 11px; color: var(--muted); margin-left: 4px; }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 24px;
+  }
+
+  .tab {
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .main { display: flex; flex: 1; }
+
+  .panel {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    display: none;
+  }
+  .panel.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* Input area */
+  .input-group { margin-bottom: 14px; }
+  .input-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+  select option { background: var(--surface2); }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* Button */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #5a52e0; }
+  .btn-sm { padding: 7px 14px; font-size: 12px; }
+
+  /* Result area */
+  .result {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .result.show { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Alert badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 100px;
+    font-size: 11px; font-weight: 500;
+    font-family: var(--mono);
+  }
+  .badge-red { background: rgba(255,95,95,0.15); color: var(--danger); }
+  .badge-yellow { background: rgba(255,181,71,0.15); color: var(--warn); }
+  .badge-green { background: rgba(0,217,165,0.15); color: var(--accent2); }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    text-align: left; padding: 8px 10px;
+    color: var(--muted); font-weight: 500;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; letter-spacing: 0.05em;
+  }
+  td { padding: 9px 10px; border-bottom: 1px solid rgba(46,50,71,0.5); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(108,99,255,0.05); }
+
+  .mono { font-family: var(--mono); }
+
+  /* Section headers in result */
+  .res-section { margin-top: 16px; margin-bottom: 8px; }
+  .res-section h3 { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
+
+  /* Store row highlight */
+  .store-alert-red td { background: rgba(255,95,95,0.06); }
+  .store-alert-yellow td { background: rgba(255,181,71,0.06); }
+
+  /* Credit match rows */
+  .match-high { border-left: 3px solid var(--accent2); }
+  .match-mid { border-left: 3px solid var(--warn); }
+  .match-low { border-left: 3px solid var(--danger); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  .icon { font-size: 16px; }
+
+  /* Summary boxes */
+  .summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 14px; }
+  .summary-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .summary-box .val { font-size: 20px; font-weight: 700; font-family: var(--mono); margin-top: 4px; }
+  .summary-box .lbl { font-size: 11px; color: var(--muted); }
+
+  .text-red { color: var(--danger); }
+  .text-green { color: var(--accent2); }
+  .text-yellow { color: var(--warn); }
+  .text-accent { color: var(--accent); }
+
+  .note {
+    font-size: 11px; color: var(--muted);
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px; padding: 8px 12px;
+    margin-top: 12px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .loading {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--muted); font-size: 13px;
+    padding: 12px 0;
+  }
+  .dot-anim span {
+    display: inline-block; width: 5px; height: 5px;
+    background: var(--accent); border-radius: 50%; margin: 0 2px;
+    animation: dot 1.2s infinite;
+  }
+  .dot-anim span:nth-child(2) { animation-delay: 0.2s; }
+  .dot-anim span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">🧮</div>
+    <h1>経理AIエージェント <span>demo</span></h1>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('store')">📊 店舗別原価率チェック</div>
+    <div class="tab" onclick="switchTab('credit')">💳 クレジット入金突合</div>
+  </div>
+
+  <div class="main">
+
+    <!-- === TAB 1: 店舗別原価率 === -->
+    <div class="panel active" id="panel-store">
+      <div class="card">
+        <div class="card-title">店舗データを入力</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">各店舗の売上高と売上原価を入力してください。AIが原価率・粗利率を自動計算し、異常な店舗を検知します。</p>
+
+        <div id="store-rows">
+          <div class="store-input-row" style="margin-bottom:12px;">
+            <div class="row3">
+              <div class="input-group" style="margin:0">
+                <label>店舗名</label>
+                <input type="text" class="s-name" placeholder="例：大阪店" value="大阪店">
+              </div>
+              <div class="input-group" style="margin:0">
+                <label>売上高（万円）</label>
+                <input type="number" class="s-sales" placeholder="4000" value="4000">
+              </div>
+              <div class="input-group" style="margin:0">
+                <label>売上原価（万円）</label>
+                <input type="number" class="s-cost" placeholder="2200" value="2200">
+              </div>
+            </div>
+          </div>
+          <div class="store-input-row" style="margin-bottom:12px;">
+            <div class="row3">
+              <div class="input-group" style="margin:0">
+                <label>店舗名</label>
+                <input type="text" class="s-name" placeholder="例：神戸店" value="神戸店">
+              </div>
+              <div class="input-group" style="margin:0">
+                <label>売上高（万円）</label>
+                <input type="number" class="s-sales" placeholder="3500" value="3500">
+              </div>
+              <div class="input-group" style="margin:0">
+                <label>売上原価（万円）</label>
+                <input type="number" class="s-cost" placeholder="2450" value="2450">
+              </div>
+            </div>
+          </div>
+          <div class="store-input-row" style="margin-bottom:12px;">
+            <div class="row3">
+              <div class="input-group" style="margin:0">
+                <label>店舗名</label>
+                <input type="text" class="s-name" placeholder="例：京都店" value="京都店">
+              </div>
+              <div class="input-group" style="margin:0">
+                <label>売上高（万円）</label>
+                <input type="number" class="s-sales" placeholder="2500" value="2500">
+              </div>
+              <div class="input-group" style="margin:0">
+                <label>売上原価（万円）</label>
+                <input type="number" class="s-cost" placeholder="1350" value="1350">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button class="btn btn-primary" onclick="addStoreRow()">＋ 店舗を追加</button>
+          <button class="btn btn-primary" onclick="runStoreCheck()">🔍 異常値チェック</button>
+        </div>
+      </div>
+
+      <div class="result" id="store-result"></div>
+    </div>
+
+    <!-- === TAB 2: クレジット突合 === -->
+    <div class="panel" id="panel-credit">
+      <div class="card">
+        <div class="card-title">① 売掛金側（店舗でカード計上した売上）</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">「クレジット/その他」で計上された売掛をカンマ区切りで入力してください。</p>
+        <table style="margin-bottom:10px;">
+          <thead>
+            <tr>
+              <th>店舗</th><th>計上日</th><th>科目</th><th>金額（円）</th>
+            </tr>
+          </thead>
+          <tbody id="ar-body">
+            <tr>
+              <td><input type="text" class="ar-store" value="大阪店" style="width:80px;padding:4px 8px;"></td>
+              <td><input type="text" class="ar-date" value="4/1" style="width:60px;padding:4px 8px;"></td>
+              <td><input type="text" class="ar-type" value="クレジットその他" style="width:120px;padding:4px 8px;"></td>
+              <td><input type="number" class="ar-amount" value="120000" style="width:90px;padding:4px 8px;"></td>
+            </tr>
+            <tr>
+              <td><input type="text" class="ar-store" value="大阪店" style="width:80px;padding:4px 8px;"></td>
+              <td><input type="text" class="ar-date" value="4/1" style="width:60px;padding:4px 8px;"></td>
+              <td><input type="text" class="ar-type" value="クレジットその他" style="width:120px;padding:4px 8px;"></td>
+              <td><input type="number" class="ar-amount" value="45000" style="width:90px;padding:4px 8px;"></td>
+            </tr>
+            <tr>
+              <td><input type="text" class="ar-store" value="神戸店" style="width:80px;padding:4px 8px;"></td>
+              <td><input type="text" class="ar-date" value="4/3" style="width:60px;padding:4px 8px;"></td>
+              <td><input type="text" class="ar-type" value="クレジットその他" style="width:120px;padding:4px 8px;"></td>
+              <td><input type="number" class="ar-amount" value="88000" style="width:90px;padding:4px 8px;"></td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="btn btn-primary btn-sm" onclick="addArRow()">＋ 行を追加</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">② 実際の入金明細（銀行・カード会社からの入金）</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">銀行通帳やネットバンクの明細を入力してください。</p>
+        <table style="margin-bottom:10px;">
+          <thead>
+            <tr>
+              <th>入金日</th><th>入金元</th><th>金額（円）</th><th>摘要</th>
+            </tr>
+          </thead>
+          <tbody id="pay-body">
+            <tr>
+              <td><input type="text" class="pay-date" value="4/20" style="width:60px;padding:4px 8px;"></td>
+              <td><input type="text" class="pay-from" value="VISA" style="width:70px;padding:4px 8px;"></td>
+              <td><input type="number" class="pay-amount" value="117600" style="width:90px;padding:4px 8px;"></td>
+              <td><input type="text" class="pay-note" value="VISA立替 大阪店" style="width:140px;padding:4px 8px;"></td>
+            </tr>
+            <tr>
+              <td><input type="text" class="pay-date" value="4/25" style="width:60px;padding:4px 8px;"></td>
+              <td><input type="text" class="pay-from" value="JCB" style="width:70px;padding:4px 8px;"></td>
+              <td><input type="number" class="pay-amount" value="44100" style="width:90px;padding:4px 8px;"></td>
+              <td><input type="text" class="pay-note" value="JCB立替 大阪店" style="width:140px;padding:4px 8px;"></td>
+            </tr>
+            <tr>
+              <td><input type="text" class="pay-date" value="4/22" style="width:60px;padding:4px 8px;"></td>
+              <td><input type="text" class="pay-from" value="VISA" style="width:70px;padding:4px 8px;"></td>
+              <td><input type="number" class="pay-amount" value="86240" style="width:90px;padding:4px 8px;"></td>
+              <td><input type="text" class="pay-note" value="VISA立替 神戸店" style="width:140px;padding:4px 8px;"></td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="btn btn-primary btn-sm" onclick="addPayRow()">＋ 行を追加</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">カード手数料率（%）</div>
+        <div class="row">
+          <div class="input-group">
+            <label>VISA / Mastercard</label>
+            <input type="number" id="visa-rate" value="2.0" step="0.1" min="0" max="10">
+          </div>
+          <div class="input-group">
+            <label>JCB / AMEX</label>
+            <input type="number" id="jcb-rate" value="2.0" step="0.1" min="0" max="10">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="runCreditMatch()">💳 突合チェック</button>
+      </div>
+
+      <div class="result" id="credit-result"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== TAB SWITCH =====
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ===== ADD ROWS =====
+function addStoreRow() {
+  const c = document.getElementById('store-rows');
+  const d = document.createElement('div');
+  d.className = 'store-input-row';
+  d.style.marginBottom = '12px';
+  d.innerHTML = `<div class="row3">
+    <div class="input-group" style="margin:0"><label>店舗名</label><input type="text" class="s-name" placeholder="店舗名"></div>
+    <div class="input-group" style="margin:0"><label>売上高（万円）</label><input type="number" class="s-sales" placeholder="0"></div>
+    <div class="input-group" style="margin:0"><label>売上原価（万円）</label><input type="number" class="s-cost" placeholder="0"></div>
+  </div>`;
+  c.appendChild(d);
+}
+
+function addArRow() {
+  const b = document.getElementById('ar-body');
+  b.insertAdjacentHTML('beforeend', `<tr>
+    <td><input type="text" class="ar-store" style="width:80px;padding:4px 8px;" placeholder="店舗名"></td>
+    <td><input type="text" class="ar-date" style="width:60px;padding:4px 8px;" placeholder="日付"></td>
+    <td><input type="text" class="ar-type" style="width:120px;padding:4px 8px;" value="クレジットその他"></td>
+    <td><input type="number" class="ar-amount" style="width:90px;padding:4px 8px;" placeholder="0"></td>
+  </tr>`);
+}
+
+function addPayRow() {
+  const b = document.getElementById('pay-body');
+  b.insertAdjacentHTML('beforeend', `<tr>
+    <td><input type="text" class="pay-date" style="width:60px;padding:4px 8px;" placeholder="日付"></td>
+    <td><input type="text" class="pay-from" style="width:70px;padding:4px 8px;" placeholder="VISA等"></td>
+    <td><input type="number" class="pay-amount" style="width:90px;padding:4px 8px;" placeholder="0"></td>
+    <td><input type="text" class="pay-note" style="width:140px;padding:4px 8px;" placeholder="摘要"></td>
+  </tr>`);
+}
+
+// ===== STORE CHECK =====
+function runStoreCheck() {
+  const names = [...document.querySelectorAll('.s-name')].map(e => e.value || '不明');
+  const sales = [...document.querySelectorAll('.s-sales')].map(e => parseFloat(e.value) || 0);
+  const costs = [...document.querySelectorAll('.s-cost')].map(e => parseFloat(e.value) || 0);
+
+  const stores = names.map((n, i) => ({
+    name: n,
+    sales: sales[i],
+    cost: costs[i],
+    profit: sales[i] - costs[i],
+    rate: sales[i] > 0 ? ((sales[i] - costs[i]) / sales[i] * 100) : 0
+  }));
+
+  const totalSales = stores.reduce((s, x) => s + x.sales, 0);
+  const totalCost = stores.reduce((s, x) => s + x.cost, 0);
+  const avgRate = totalSales > 0 ? ((totalSales - totalCost) / totalSales * 100) : 0;
+
+  const res = document.getElementById('store-result');
+  res.classList.add('show');
+
+  let rows = stores.map(s => {
+    const diff = s.rate - avgRate;
+    let badge, cls;
+    if (Math.abs(diff) >= 10) { badge = `<span class="badge badge-red">🔴 要対応</span>`; cls = 'store-alert-red'; }
+    else if (Math.abs(diff) >= 5) { badge = `<span class="badge badge-yellow">🟡 要注意</span>`; cls = 'store-alert-yellow'; }
+    else { badge = `<span class="badge badge-green">🟢 正常</span>`; cls = ''; }
+    const diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(1) + 'pt';
+    return `<tr class="${cls}">
+      <td><strong>${s.name}</strong></td>
+      <td class="mono">${s.sales.toLocaleString()}万</td>
+      <td class="mono">${s.cost.toLocaleString()}万</td>
+      <td class="mono">${s.profit.toLocaleString()}万</td>
+      <td class="mono">${s.rate.toFixed(1)}%</td>
+      <td class="mono ${diff < -10 ? 'text-red' : diff < -5 ? 'text-yellow' : 'text-green'}">${diffStr}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+
+  // Alerts
+  const alerts = stores.filter(s => Math.abs(s.rate - avgRate) >= 5);
+  let alertHtml = '';
+  alerts.forEach(s => {
+    const diff = s.rate - avgRate;
+    const level = Math.abs(diff) >= 10 ? 'red' : 'yellow';
+    const reasons = diff < 0
+      ? ['仕入単価が他店舗より高い可能性', '廃棄・値引きロスが多い可能性', '他店舗の原価が誤計上されている可能性', '棚卸計上のミスの可能性']
+      : ['低コストの仕入先を利用している（良好）', '高粗利商品の販売比率が高い', '値引きが少ない（良好）'];
+    alertHtml += `
+      <div style="background:rgba(${level==='red'?'255,95,95':'255,181,71'},0.08);border:1px solid rgba(${level==='red'?'255,95,95':'255,181,71'},0.2);border-radius:8px;padding:14px;margin-top:12px;">
+        <div style="font-weight:500;margin-bottom:8px;">${level==='red'?'🔴':'🟡'} ${s.name}：粗利率 ${s.rate.toFixed(1)}%（全社平均比 ${(diff>=0?'+':'')+diff.toFixed(1)}pt）</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">考えられる原因：</div>
+        <ul style="font-size:12px;padding-left:16px;color:var(--text);">
+          ${reasons.map(r=>`<li>${r}</li>`).join('')}
+        </ul>
+      </div>`;
+  });
+
+  res.innerHTML = `
+    <div class="card-title">📊 店舗別原価率チェック結果</div>
+
+    <div class="summary-grid">
+      <div class="summary-box">
+        <div class="lbl">全社売上合計</div>
+        <div class="val text-accent">${totalSales.toLocaleString()}<small style="font-size:13px">万</small></div>
+      </div>
+      <div class="summary-box">
+        <div class="lbl">全社粗利率（平均）</div>
+        <div class="val ${avgRate < 30 ? 'text-red' : avgRate < 40 ? 'text-yellow' : 'text-green'}">${avgRate.toFixed(1)}<small style="font-size:13px">%</small></div>
+      </div>
+      <div class="summary-box">
+        <div class="lbl">要注意店舗数</div>
+        <div class="val ${alerts.length > 0 ? 'text-red' : 'text-green'}">${alerts.length}<small style="font-size:13px">店舗</small></div>
+      </div>
+    </div>
+
+    <div class="res-section" style="margin-top:20px;"><h3>全社＋店舗別 比較</h3></div>
+    <table>
+      <thead><tr>
+        <th>店舗</th><th>売上高</th><th>売上原価</th><th>粗利</th><th>粗利率</th><th>全社平均差</th><th>判定</th>
+      </tr></thead>
+      <tbody>
+        <tr style="background:rgba(108,99,255,0.08);">
+          <td><strong>全社合計</strong></td>
+          <td class="mono">${totalSales.toLocaleString()}万</td>
+          <td class="mono">${totalCost.toLocaleString()}万</td>
+          <td class="mono">${(totalSales-totalCost).toLocaleString()}万</td>
+          <td class="mono"><strong>${avgRate.toFixed(1)}%</strong></td>
+          <td class="mono">—</td>
+          <td>—</td>
+        </tr>
+        ${rows}
+      </tbody>
+    </table>
+
+    ${alertHtml || '<div style="color:var(--accent2);margin-top:12px;font-size:13px;">✅ すべての店舗が正常範囲内です</div>'}
+
+    <div class="note">⚠️ 最終的な判断は税理士・会計士にご相談ください。このデモは参考用です。</div>
+  `;
+}
+
+// ===== CREDIT MATCH =====
+function runCreditMatch() {
+  const arStores = [...document.querySelectorAll('.ar-store')].map(e => e.value);
+  const arDates = [...document.querySelectorAll('.ar-date')].map(e => e.value);
+  const arAmounts = [...document.querySelectorAll('.ar-amount')].map(e => parseFloat(e.value) || 0);
+
+  const payDates = [...document.querySelectorAll('.pay-date')].map(e => e.value);
+  const payFroms = [...document.querySelectorAll('.pay-from')].map(e => e.value);
+  const payAmounts = [...document.querySelectorAll('.pay-amount')].map(e => parseFloat(e.value) || 0);
+  const payNotes = [...document.querySelectorAll('.pay-note')].map(e => e.value);
+
+  const visaRate = parseFloat(document.getElementById('visa-rate').value) / 100;
+  const jcbRate = parseFloat(document.getElementById('jcb-rate').value) / 100;
+
+  const res = document.getElementById('credit-result');
+  res.classList.add('show');
+  res.innerHTML = `<div class="loading"><div class="dot-anim"><span></span><span></span><span></span></div>突合処理中...</div>`;
+
+  setTimeout(() => {
+    // Match logic
+    const matched = [];
+    const unmatchedAr = [...Array(arAmounts.length).keys()];
+    const unmatchedPay = [...Array(payAmounts.length).keys()];
+
+    arAmounts.forEach((arAmt, ai) => {
+      let bestMatch = null, bestScore = 0;
+      payAmounts.forEach((payAmt, pi) => {
+        if (!unmatchedPay.includes(pi)) return;
+        const rate = payFroms[pi].includes('JCB') || payFroms[pi].includes('AMEX') ? jcbRate : visaRate;
+        const expected = arAmt * (1 - rate);
+        const diff = Math.abs(payAmt - expected);
+        const score = diff < arAmt * 0.05 ? 3 : diff < arAmt * 0.1 ? 2 : 1;
+        // store match bonus
+        const storeMatch = payNotes[pi] && arStores[ai] && payNotes[pi].includes(arStores[ai].replace('店','')) ? 1 : 0;
+        const total = score + storeMatch;
+        if (total > bestScore) { bestScore = total; bestMatch = { pi, payAmt, diff: payAmt - arAmt, rate }; }
+      });
+      if (bestMatch && bestScore >= 2) {
+        const idx = unmatchedPay.indexOf(bestMatch.pi);
+        unmatchedPay.splice(idx, 1);
+        const arIdx = unmatchedAr.indexOf(ai);
+        if (arIdx > -1) unmatchedAr.splice(arIdx, 1);
+        matched.push({ ai, pi: bestMatch.pi, score: bestScore, diff: bestMatch.diff, rate: bestMatch.rate });
+      }
+    });
+
+    // Build result
+    let matchRows = matched.map(m => {
+      const confidence = m.score >= 4 ? '高' : m.score >= 3 ? '中' : '低';
+      const cls = m.score >= 4 ? 'match-high' : m.score >= 3 ? 'match-mid' : 'match-low';
+      const badge = m.score >= 4
+        ? `<span class="badge badge-green">✅ 高信頼</span>`
+        : `<span class="badge badge-yellow">🟡 要確認</span>`;
+      const fee = Math.round(Math.abs(m.diff));
+      const feeRate = (m.rate * 100).toFixed(1);
+      return `<tr class="${cls}">
+        <td>${arStores[m.ai]}</td>
+        <td>${arDates[m.ai]}</td>
+        <td class="mono">${arAmounts[m.ai].toLocaleString()}円</td>
+        <td>${payDates[m.pi]} ${payFroms[m.pi]}</td>
+        <td class="mono">${payAmounts[m.pi].toLocaleString()}円</td>
+        <td class="mono text-yellow">-${fee.toLocaleString()}円<small style="font-size:10px;margin-left:4px;">(手数料${feeRate}%)</small></td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('');
+
+    let unmatchedArHtml = unmatchedAr.map(i =>
+      `<tr><td>${arStores[i]}</td><td>${arDates[i]}</td><td class="mono text-red">${arAmounts[i].toLocaleString()}円</td><td colspan="4" class="text-red">対応する入金が見つかりませんでした</td></tr>`
+    ).join('');
+
+    let unmatchedPayHtml = unmatchedPay.map(i =>
+      `<tr><td>${payDates[i]}</td><td>${payFroms[i]}</td><td class="mono text-yellow">${payAmounts[i].toLocaleString()}円</td><td colspan="4" class="text-yellow">対応する売掛が見つかりませんでした</td></tr>`
+    ).join('');
+
+    const totalAr = arAmounts.reduce((s,x)=>s+x,0);
+    const totalPay = payAmounts.reduce((s,x)=>s+x,0);
+    const totalFee = matched.reduce((s,m)=>s+Math.abs(m.diff),0);
+
+    res.innerHTML = `
+      <div class="card-title">💳 クレジット入金 突合結果</div>
+
+      <div class="summary-grid">
+        <div class="summary-box">
+          <div class="lbl">突合成功</div>
+          <div class="val text-green">${matched.length}<small style="font-size:13px">件</small></div>
+        </div>
+        <div class="summary-box">
+          <div class="lbl">未突合（売掛）</div>
+          <div class="val ${unmatchedAr.length>0?'text-red':'text-green'}">${unmatchedAr.length}<small style="font-size:13px">件</small></div>
+        </div>
+        <div class="summary-box">
+          <div class="lbl">カード手数料合計</div>
+          <div class="val text-yellow">${Math.round(totalFee).toLocaleString()}<small style="font-size:13px">円</small></div>
+        </div>
+      </div>
+
+      <div class="res-section" style="margin-top:20px;"><h3>✅ 突合候補</h3></div>
+      <table>
+        <thead><tr>
+          <th>店舗</th><th>売上日</th><th>売掛金額</th><th>入金日・元</th><th>入金額</th><th>差額（手数料）</th><th>信頼度</th>
+        </tr></thead>
+        <tbody>${matchRows || '<tr><td colspan="7" style="color:var(--muted);">突合候補なし</td></tr>'}</tbody>
+      </table>
+
+      ${unmatchedAr.length > 0 ? `
+      <div class="res-section"><h3>🔴 未突合の売掛金</h3></div>
+      <table><thead><tr><th>店舗</th><th>計上日</th><th>金額</th><th colspan="4">状況</th></tr></thead>
+      <tbody>${unmatchedArHtml}</tbody></table>` : ''}
+
+      ${unmatchedPay.length > 0 ? `
+      <div class="res-section"><h3>🟡 突合できなかった入金</h3></div>
+      <table><thead><tr><th>入金日</th><th>入金元</th><th>金額</th><th colspan="4">状況</th></tr></thead>
+      <tbody>${unmatchedPayHtml}</tbody></table>` : ''}
+
+      <div class="res-section"><h3>📋 仕訳ドラフト（承認後に確定）</h3></div>
+      ${matched.map(m => {
+        const fee = Math.round(Math.abs(m.diff));
+        return `<div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:8px;font-size:12px;">
+          <div style="color:var(--muted);margin-bottom:6px;">${arStores[m.ai]} ${arDates[m.ai]}売上 → ${payDates[m.pi]} ${payFroms[m.pi]}入金</div>
+          <table style="font-family:var(--mono);">
+            <tr><td style="width:120px;color:var(--muted);">借方</td><td style="width:120px;color:var(--muted);">金額</td><td style="width:120px;color:var(--muted);">貸方</td><td style="color:var(--muted);">金額</td></tr>
+            <tr><td>普通預金</td><td>${payAmounts[m.pi].toLocaleString()}円</td><td>売掛金</td><td>${arAmounts[m.ai].toLocaleString()}円</td></tr>
+            ${fee > 0 ? `<tr><td>支払手数料</td><td>${fee.toLocaleString()}円</td><td></td><td></td></tr>` : ''}
+          </table>
+        </div>`;
+      }).join('')}
+
+      <div class="note">⚠️ 突合結果は参考候補です。必ず内容を確認のうえ承認してください。最終判断は税理士へ。</div>
+    `;
+  }, 800);
+}
+</script>
+</body>
+</html>
