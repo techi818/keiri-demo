@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MM Hair Group 経理AIエージェント</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0c14;
+  --surface: #13162280;
+  --surface2: #1c2035;
+  --border: #ffffff12;
+  --accent: #7c6fff;
+  --accent2: #00e5b0;
+  --warn: #ffcc44;
+  --danger: #ff4d6d;
+  --text: #e8eaf6;
+  --muted: #6b7280;
+  --font: 'Noto Sans JP', sans-serif;
+  --mono: 'Space Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% 10%, #7c6fff18 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, #00e5b018 0%, transparent 60%);
+}
+
+/* Header */
+header {
+  padding: 16px 28px;
+  display: flex; align-items: center; gap: 14px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  background: rgba(10,12,20,0.85);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo-mark {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 14px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.header-info h1 { font-size: 15px; font-weight: 500; }
+.header-info p { font-size: 11px; color: var(--muted); }
+.header-badge {
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 100px;
+  background: rgba(124,111,255,0.15);
+  border: 1px solid rgba(124,111,255,0.3);
+  font-size: 11px; color: var(--accent);
+  font-family: var(--mono);
+}
+
+/* Nav tabs */
+.nav-tabs {
+  display: flex; gap: 4px;
+  padding: 14px 28px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.nav-tab {
+  padding: 10px 18px;
+  font-size: 13px; color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+  user-select: none;
+  font-family: var(--font);
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Panels */
+.panel { display: none; padding: 24px 28px; max-width: 1100px; }
+.panel.active { display: block; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-bottom: 18px;
+  backdrop-filter: blur(8px);
+}
+.card-title {
+  font-size: 11px; font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+/* Stat grid */
+.stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+.stat-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+}
+.stat-box .lbl { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.stat-box .val { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+.stat-box .sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* Table */
+.tbl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  padding: 10px 12px; text-align: left;
+  background: rgba(124,111,255,0.12);
+  color: var(--muted); font-size: 11px;
+  font-weight: 500; letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(124,111,255,0.05); }
+.tr-total td { background: rgba(124,111,255,0.12); font-weight: 700; }
+.mono { font-family: var(--mono); }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 100px;
+  font-size: 11px; font-weight: 500;
+}
+.b-red { background: rgba(255,77,109,0.15); color: var(--danger); }
+.b-yellow { background: rgba(255,204,68,0.15); color: var(--warn); }
+.b-green { background: rgba(0,229,176,0.15); color: var(--accent2); }
+.b-purple { background: rgba(124,111,255,0.15); color: var(--accent); }
+
+/* Button */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px; border-radius: 8px;
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  cursor: pointer; border: none; transition: all 0.2s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #6a5de8; transform: translateY(-1px); }
+.btn-ghost {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+
+/* Section header */
+.sec-hdr {
+  display: flex; align-items: center; gap: 10px;
+  margin: 20px 0 12px;
+}
+.sec-hdr h3 { font-size: 13px; font-weight: 500; color: var(--text); }
+.sec-hdr .line { flex: 1; height: 1px; background: var(--border); }
+
+/* Alert box */
+.alert-box {
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;
+  border-left: 3px solid;
+}
+.alert-red { background: rgba(255,77,109,0.08); border-color: var(--danger); }
+.alert-yellow { background: rgba(255,204,68,0.08); border-color: var(--warn); }
+.alert-green { background: rgba(0,229,176,0.08); border-color: var(--accent2); }
+.alert-box strong { display: block; margin-bottom: 5px; font-size: 13px; }
+.alert-box ul { padding-left: 16px; font-size: 12px; color: var(--muted); }
+
+/* Loading */
+.loading {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px; color: var(--muted); font-size: 13px;
+}
+.dots span {
+  display: inline-block; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 50%;
+  margin: 0 2px; animation: pulse 1.2s infinite;
+}
+.dots span:nth-child(2) { animation-delay: 0.2s; }
+.dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,80%,100%{transform:scale(0.5);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+
+.note {
+  font-size: 11px; color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+  margin-top: 14px; line-height: 1.7;
+}
+
+.result-wrap { display: none; }
+.result-wrap.show { display: block; animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.text-red { color: var(--danger); }
+.text-green { color: var(--accent2); }
+.text-yellow { color: var(--warn); }
+.text-accent { color: var(--accent); }
+
+select, input[type=number] {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: var(--font); font-size: 13px;
+  padding: 8px 12px; outline: none;
+  transition: border-color 0.2s;
+}
+select:focus, input[type=number]:focus { border-color: var(--accent); }
+select option { background: #1c2035; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.input-group { margin-bottom: 12px; }
+.input-group label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.05em; }
+.input-group select, .input-group input { width: 100%; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">MM</div>
+  <div class="header-info">
+    <h1>MM Hair Group　経理AIエージェント</h1>
+    <p>株式会社 Mountain Mouth　2026年4月度 デモ</p>
+  </div>
+  <div class="header-badge">試作版 v0.1</div>
+</header>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="switchTab('overview', this)">📊 月次サマリ</div>
+  <div class="nav-tab" onclick="switchTab('store', this)">🏪 店舗別原価率チェック</div>
+  <div class="nav-tab" onclick="switchTab('credit', this)">💳 クレジット入金突合</div>
+  <div class="nav-tab" onclick="switchTab('expense', this)">📋 経費チェック</div>
+</div>
+
+<!-- ===== TAB 1: 月次サマリ ===== -->
+<div class="panel active" id="panel-overview">
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="lbl">全社売上高（4月）</div>
+      <div class="val text-accent">24,830<small style="font-size:13px">万円</small></div>
+      <div class="sub">前月比 +2.3%</div>
+    </div>
+    <div class="stat-box">
+      <div class="lbl">全社粗利率</div>
+      <div class="val text-green">50.2<small style="font-size:13px">%</small></div>
+      <div class="sub">目標 52.0%</div>
+    </div>
+    <div class="stat-box">
+      <div class="lbl">要注意店舗</div>
+      <div class="val text-red">3<small style="font-size:13px">店舗</small></div>
+      <div class="sub">原価率ブレ検知</div>
+    </div>
+    <div class="stat-box">
+      <div class="lbl">未突合カード入金</div>
+      <div class="val text-yellow">10<small style="font-size:13px">件</small></div>
+      <div class="sub">要確認</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">AIからのアラートサマリ</div>
+    <div class="alert-box alert-red">
+      <strong>🔴 原価率異常　3店舗で全社平均との乖離が±10pt以上</strong>
+      <ul>
+        <li>MM Hair 京橋店：粗利率 34.2%（全社平均比 -16pt）→ 仕入コスト急増の可能性</li>
+        <li>MM Hair 上本町店：粗利率 33.8%（全社平均比 -16.4pt）→ 廃棄ロス・値引き増加の可能性</li>
+        <li>MM Men's 三宮店：粗利率 32.1%（全社平均比 -18.1pt）→ 原価が他店と大きく乖離</li>
+      </ul>
+    </div>
+    <div class="alert-box alert-yellow">
+      <strong>🟡 カード入金 未突合　10件（合計 31,130,000円）</strong>
+      <ul>
+        <li>VISA・JCB・AMEX等10社からの入金が全件未突合状態</li>
+        <li>一部店舗でレジ入力「クレジット/その他」→ 科目ズレが発生している可能性あり</li>
+      </ul>
+    </div>
+    <div class="alert-box alert-yellow">
+      <strong>🟡 経費要確認　2件</strong>
+      <ul>
+        <li>交際費 58,000円（神戸店）→ 交際費 or 福利厚生費の判断が必要</li>
+        <li>顧問料 200,000円 → 消費税区分・科目の最終確認を税理士へ</li>
+      </ul>
+    </div>
+    <div class="alert-box alert-green">
+      <strong>✅ 正常　27店舗は通常範囲内</strong>
+      <ul>
+        <li>予算比95%以上の店舗：23店舗</li>
+        <li>B/S（貸借対照表）は先月比から大きな動きなし</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">業態別売上サマリ（4月）</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>業態</th><th>店舗数</th><th>売上合計（万円）</th><th>粗利率（平均）</th><th>予算比</th><th>状況</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td>美容院</td>
+            <td class="mono" style="text-align:center">20</td>
+            <td class="mono" style="text-align:right">16,840</td>
+            <td class="mono" style="text-align:right">49.8%</td>
+            <td class="mono" style="text-align:right">98.2%</td>
+            <td><span class="badge b-yellow">🟡 2店舗要注意</span></td>
+          </tr>
+          <tr>
+            <td>メンズ専用</td>
+            <td class="mono" style="text-align:center">5</td>
+            <td class="mono" style="text-align:right">4,920</td>
+            <td class="mono" style="text-align:right">48.3%</td>
+            <td class="mono" style="text-align:right">97.4%</td>
+            <td><span class="badge b-red">🔴 1店舗要対応</span></td>
+          </tr>
+          <tr>
+            <td>ネイルサロン</td>
+            <td class="mono" style="text-align:center">5</td>
+            <td class="mono" style="text-align:right">3,070</td>
+            <td class="mono" style="text-align:right">55.1%</td>
+            <td class="mono" style="text-align:right">101.3%</td>
+            <td><span class="badge b-green">✅ 正常</span></td>
+          </tr>
+          <tr class="tr-total">
+            <td>全社合計</td>
+            <td class="mono" style="text-align:center">30</td>
+            <td class="mono" style="text-align:right">24,830</td>
+            <td class="mono" style="text-align:right">50.2%</td>
+            <td class="mono" style="text-align:right">98.5%</td>
+            <td><span class="badge b-yellow">🟡 要確認あり</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 2: 店舗別原価率 ===== -->
+<div class="panel" id="panel-store">
+  <div class="card">
+    <div class="card-title">分析条件</div>
+    <div class="row2">
+      <div class="input-group">
+        <label>業態フィルター</label>
+        <select id="type-filter" onchange="renderStoreTable()">
+          <option value="all">全業態</option>
+          <option value="美容院">美容院のみ</option>
+          <option value="メンズ専用">メンズ専用のみ</option>
+          <option value="ネイルサロン">ネイルサロンのみ</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>アラート閾値（🔴 の乖離ポイント）</label>
+        <input type="number" id="threshold-red" value="10" min="1" max="30" onchange="renderStoreTable()">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="renderStoreTable()">🔍 チェック実行</button>
+  </div>
+
+  <div id="store-result-wrap" class="result-wrap show">
+    <div id="store-alerts"></div>
+    <div class="card">
+      <div class="card-title">店舗別原価率一覧（4月実績）</div>
+      <div class="tbl-wrap">
+        <table id="store-table">
+          <thead><tr>
+            <th>店舗ID</th><th>店舗名</th><th>業態</th><th>エリア</th>
+            <th style="text-align:right">売上(万円)</th>
+            <th style="text-align:right">原価(万円)</th>
+            <th style="text-align:right">粗利率</th>
+            <th style="text-align:right">全社平均差</th>
+            <th>判定</th>
+          </tr></thead>
+          <tbody id="store-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="note">⚠️ 最終的な判断は税理士・会計士にご相談ください。このデモは参考用です。</div>
+  </div>
+</div>
+
+<!-- ===== TAB 3: クレジット突合 ===== -->
+<div class="panel" id="panel-credit">
+  <div class="card">
+    <div class="card-title">突合条件設定</div>
+    <div class="row2">
+      <div class="input-group">
+        <label>VISA / Mastercard 手数料率（%）</label>
+        <input type="number" id="visa-fee" value="3.0" step="0.1" min="0" max="10">
+      </div>
+      <div class="input-group">
+        <label>JCB / AMEX 手数料率（%）</label>
+        <input type="number" id="jcb-fee" value="3.5" step="0.1" min="0" max="10">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="runCreditMatch()">💳 突合チェック実行</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">カード売上計上データ（帳簿側・4月上旬分）</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>日付</th><th>店舗</th><th>科目</th><th style="text-align:right">金額（円）</th><th>備考</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>4/1〜15</td><td>全店舗</td><td>クレジット/VISA</td><td class="mono" style="text-align:right">8,660,000</td><td></td></tr>
+          <tr><td>4/1〜15</td><td>全店舗</td><td>クレジット/JCB</td><td class="mono" style="text-align:right">3,270,000</td><td></td></tr>
+          <tr><td>4/1〜15</td><td>全店舗</td><td>クレジット/AMEX</td><td class="mono" style="text-align:right">1,090,000</td><td></td></tr>
+          <tr><td>4/1〜15</td><td>全店舗</td><td>クレジット/Master</td><td class="mono" style="text-align:right">2,210,000</td><td></td></tr>
+          <tr><td>4/1〜15</td><td>全店舗</td><td>QR/PayPay</td><td class="mono" style="text-align:right">1,280,000</td><td></td></tr>
+          <tr><td>4/1〜15</td><td>全店舗</td><td>電子マネー/交通系</td><td class="mono" style="text-align:right">920,000</td><td></td></tr>
+          <tr style="background:rgba(255,77,109,0.06)"><td>4/1〜15</td><td>H03・H07・M02他</td><td class="text-red">クレジット/その他</td><td class="mono text-red" style="text-align:right">850,000</td><td class="text-red">⚠ レジ入力ミス</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">カード会社からの実際の入金明細（銀行口座・4月）</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>入金日</th><th>入金元</th><th style="text-align:right">入金額（円）</th><th>対象期間</th><th>摘要</th>
+        </tr></thead>
+        <tbody id="payment-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="result-wrap" id="credit-result-wrap">
+    <div id="credit-result"></div>
+  </div>
+</div>
+
+<!-- ===== TAB 4: 経費チェック ===== -->
+<div class="panel" id="panel-expense">
+  <div class="card">
+    <div class="card-title">2026年4月　経費明細チェック</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">AIが消費税区分・勘定科目・要確認項目を自動チェックします。黄色は要確認項目です。</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>日付</th><th>支払先</th><th>勘定科目</th>
+          <th style="text-align:right">金額（円）</th>
+          <th>消費税区分</th><th>AIチェック</th><th>備考</th>
+        </tr></thead>
+        <tbody id="expense-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">消費税集計（4月）</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>区分</th><th style="text-align:right">合計金額（円）</th><th>件数</th></tr></thead>
+        <tbody>
+          <tr><td>課税10%</td><td class="mono" style="text-align:right">3,433,000</td><td style="text-align:center">10件</td></tr>
+          <tr><td>不課税</td><td class="mono" style="text-align:right">9,430,000</td><td style="text-align:center">2件</td></tr>
+          <tr><td>非課税</td><td class="mono" style="text-align:right">85,000</td><td style="text-align:center">1件</td></tr>
+          <tr><td class="text-yellow">要確認</td><td class="mono text-yellow" style="text-align:right">258,000</td><td style="text-align:center">2件</td></tr>
+          <tr class="tr-total"><td>合計</td><td class="mono" style="text-align:right">13,206,000</td><td style="text-align:center">15件</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">⚠️ 交際費・顧問料の2件は消費税区分・科目の最終判断を税理士にご確認ください。</div>
+  </div>
+</div>
+
+<script>
+// ===== データ定義 =====
+const stores = [
+  {id:"H01",name:"MM Hair 梅田店",type:"美容院",city:"大阪",sales:11200,cost:5710},
+  {id:"H02",name:"MM Hair 心斎橋店",type:"美容院",city:"大阪",sales:9800,cost:4998},
+  {id:"H03",name:"MM Hair 難波店",type:"美容院",city:"大阪",sales:8900,cost:5874,anomaly:true},
+  {id:"H04",name:"MM Hair 天王寺店",type:"美容院",city:"大阪",sales:7200,cost:3672},
+  {id:"H05",name:"MM Hair 京橋店",type:"美容院",city:"大阪",sales:6800,cost:4489,anomaly:true},
+  {id:"H06",name:"MM Hair 北浜店",type:"美容院",city:"大阪",sales:6200,cost:3162},
+  {id:"H07",name:"MM Hair 上本町店",type:"美容院",city:"大阪",sales:7100,cost:4700,anomaly:true},
+  {id:"H08",name:"MM Hair 江坂店",type:"美容院",city:"大阪",sales:6500,cost:3315},
+  {id:"H09",name:"MM Hair 豊中店",type:"美容院",city:"大阪",sales:7800,cost:3978},
+  {id:"H10",name:"MM Hair 堺東店",type:"美容院",city:"大阪",sales:6100,cost:3111},
+  {id:"H11",name:"MM Hair 三宮店",type:"美容院",city:"神戸",sales:9200,cost:4692},
+  {id:"H12",name:"MM Hair 元町店",type:"美容院",city:"神戸",sales:7400,cost:3774},
+  {id:"H13",name:"MM Hair 神戸駅前店",type:"美容院",city:"神戸",sales:6900,cost:3519},
+  {id:"H14",name:"MM Hair 西宮店",type:"美容院",city:"神戸",sales:8100,cost:4131},
+  {id:"H15",name:"MM Hair 尼崎店",type:"美容院",city:"神戸",sales:5800,cost:2958},
+  {id:"H16",name:"MM Hair 明石店",type:"美容院",city:"神戸",sales:5400,cost:2754},
+  {id:"H17",name:"MM Hair 京都駅前店",type:"美容院",city:"京都",sales:8600,cost:4386},
+  {id:"H18",name:"MM Hair 四条烏丸店",type:"美容院",city:"京都",sales:7700,cost:3927},
+  {id:"H19",name:"MM Hair 河原町店",type:"美容院",city:"京都",sales:8200,cost:4182},
+  {id:"H20",name:"MM Hair 烏丸御池店",type:"美容院",city:"京都",sales:6800,cost:3468},
+  {id:"M01",name:"MM Men's 梅田店",type:"メンズ専用",city:"大阪",sales:5200,cost:2496},
+  {id:"M02",name:"MM Men's 難波店",type:"メンズ専用",city:"大阪",sales:4800,cost:2448},
+  {id:"M03",name:"MM Men's 三宮店",type:"メンズ専用",city:"神戸",sales:4500,cost:3060,anomaly:true},
+  {id:"M04",name:"MM Men's 京都駅前店",type:"メンズ専用",city:"京都",sales:3800,cost:1938},
+  {id:"M05",name:"MM Men's 天王寺店",type:"メンズ専用",city:"大阪",sales:4100,cost:2091},
+  {id:"N01",name:"MM Nail 心斎橋店",type:"ネイルサロン",city:"大阪",sales:2800,cost:1204},
+  {id:"N02",name:"MM Nail 梅田店",type:"ネイルサロン",city:"大阪",sales:2500,cost:1075},
+  {id:"N03",name:"MM Nail 三宮店",type:"ネイルサロン",city:"神戸",sales:2200,cost:946},
+  {id:"N04",name:"MM Nail 四条烏丸店",type:"ネイルサロン",city:"京都",sales:2100,cost:903},
+  {id:"N05",name:"MM Nail 難波店",type:"ネイルサロン",city:"大阪",sales:1900,cost:817},
+];
+
+const payments = [
+  {date:"4/15",from:"VISA",amount:8420000,period:"4/1〜4/15分",note:"VISA立替金 上旬分"},
+  {date:"4/15",from:"JCB",amount:3180000,period:"4/1〜4/15分",note:"JCB立替金 上旬分"},
+  {date:"4/15",from:"PayPay",amount:1240000,period:"4/1〜4/15分",note:"PayPay売上送金 上旬"},
+  {date:"4/15",from:"交通系",amount:890000,period:"4/1〜4/15分",note:"交通系IC立替 上旬"},
+  {date:"4/20",from:"Mastercard",amount:2150000,period:"4/1〜4/15分",note:"MC立替金 上旬分"},
+  {date:"4/25",from:"AMEX",amount:1050000,period:"4/1〜4/15分",note:"AMEX立替 上旬分（遅延）"},
+  {date:"4/28",from:"VISA",amount:8680000,period:"4/16〜4/30分",note:"VISA立替金 下旬分"},
+  {date:"4/28",from:"JCB",amount:3290000,period:"4/16〜4/30分",note:"JCB立替金 下旬分"},
+  {date:"4/30",from:"PayPay",amount:1310000,period:"4/16〜4/30分",note:"PayPay売上送金 下旬"},
+  {date:"4/30",from:"交通系",amount:920000,period:"4/16〜4/30分",note:"交通系IC立替 下旬"},
+];
+
+const expenses = [
+  {date:"4/1",to:"○○ビル管理",subject:"地代家賃",amount:850000,tax:"課税10%",note:"梅田店・心斎橋店・難波店",check:"ok"},
+  {date:"4/1",to:"△△電力",subject:"水道光熱費",amount:320000,tax:"課税10%",note:"全店舗分",check:"ok"},
+  {date:"4/2",to:"□□シャンプー卸",subject:"仕入高",amount:1240000,tax:"課税10%",note:"4月分薬剤・消耗品",check:"ok"},
+  {date:"4/5",to:"●●通信",subject:"通信費",amount:89000,tax:"課税10%",note:"店舗回線・Wi-Fi代",check:"ok"},
+  {date:"4/7",to:"★★広告",subject:"広告宣伝費",amount:450000,tax:"課税10%",note:"ホットペッパー4月分",check:"ok"},
+  {date:"4/10",to:"◎◎リース",subject:"リース料",amount:180000,tax:"課税10%",note:"シャンプー台・椅子",check:"ok"},
+  {date:"4/12",to:"接待費（神戸店）",subject:"交際費",amount:58000,tax:"課税10%",note:"取引先接待",check:"warn",msg:"交際費 or 福利厚生費か要確認。一人あたり金額・参加者を記録してください。"},
+  {date:"4/15",to:"給与支払",subject:"給料手当",amount:8200000,tax:"不課税",note:"4月分給与",check:"ok"},
+  {date:"4/15",to:"社会保険料",subject:"法定福利費",amount:1230000,tax:"不課税",note:"4月分",check:"ok"},
+  {date:"4/18",to:"▲▲清掃",subject:"外注費",amount:95000,tax:"課税10%",note:"店舗清掃委託",check:"ok"},
+  {date:"4/20",to:"消耗品購入",subject:"消耗品費",amount:67000,tax:"課税10%",note:"タオル・ケープ等",check:"ok"},
+  {date:"4/22",to:"出張交通費",subject:"旅費交通費",amount:34000,tax:"課税10%",note:"本社→各店視察",check:"ok"},
+  {date:"4/25",to:"研修費",subject:"教育研修費",amount:120000,tax:"課税10%",note:"スタッフ技術研修",check:"ok"},
+  {date:"4/28",to:"保険料",subject:"保険料",amount:85000,tax:"非課税",note:"店舗火災保険",check:"ok"},
+  {date:"4/30",to:"顧問料",subject:"支払報酬",amount:200000,tax:"課税10%",note:"税理士顧問料",check:"warn",msg:"源泉徴収が必要な場合があります。税理士にご確認ください。"},
+];
+
+// ===== Tab switch =====
+function switchTab(name, el) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ===== Store table =====
+function renderStoreTable() {
+  const filter = document.getElementById('type-filter').value;
+  const threshRed = parseFloat(document.getElementById('threshold-red').value) || 10;
+  const threshYellow = threshRed / 2;
+
+  const filtered = filter === 'all' ? stores : stores.filter(s => s.type === filter);
+  const totalSales = filtered.reduce((s,x)=>s+x.sales,0);
+  const totalCost = filtered.reduce((s,x)=>s+x.cost,0);
+  const avgRate = totalSales > 0 ? (totalSales-totalCost)/totalSales*100 : 0;
+
+  const alerts = filtered.filter(s => {
+    const r = (s.sales-s.cost)/s.sales*100;
+    return Math.abs(r-avgRate) >= threshYellow;
+  });
+
+  // Alerts
+  const alertDiv = document.getElementById('store-alerts');
+  alertDiv.innerHTML = '';
+  alerts.forEach(s => {
+    const r = (s.sales-s.cost)/s.sales*100;
+    const diff = r - avgRate;
+    const level = Math.abs(diff) >= threshRed ? 'red' : 'yellow';
+    const reasons = diff < 0
+      ? ['仕入単価が他店舗より高い可能性','廃棄・値引きロスが多い可能性','他店舗の原価が誤計上されている可能性','棚卸計上のミスの可能性']
+      : ['低コストの仕入先を活用している','高粗利商品の販売比率が高い'];
+    const d = document.createElement('div');
+    d.className = `alert-box alert-${level}`;
+    d.innerHTML = `<strong>${level==='red'?'🔴':'🟡'} ${s.name}：粗利率 ${r.toFixed(1)}%（全社平均比 ${(diff>=0?'+':'')+diff.toFixed(1)}pt）</strong><ul>${reasons.map(r=>`<li>${r}</li>`).join('')}</ul>`;
+    alertDiv.appendChild(d);
+  });
+
+  // Table
+  const tbody = document.getElementById('store-tbody');
+  tbody.innerHTML = '';
+
+  // Total row
+  const totalProfit = totalSales - totalCost;
+  const totalRate = totalSales > 0 ? totalProfit/totalSales*100 : 0;
+  const tr0 = document.createElement('tr');
+  tr0.className = 'tr-total';
+  tr0.innerHTML = `<td colspan="4">全社合計（${filtered.length}店舗）</td>
+    <td class="mono" style="text-align:right">${totalSales.toLocaleString()}</td>
+    <td class="mono" style="text-align:right">${totalCost.toLocaleString()}</td>
+    <td class="mono" style="text-align:right">${totalRate.toFixed(1)}%</td>
+    <td class="mono" style="text-align:right">—</td>
+    <td>—</td>`;
+  tbody.appendChild(tr0);
+
+  filtered.forEach(s => {
+    const profit = s.sales - s.cost;
+    const rate = s.sales > 0 ? profit/s.sales*100 : 0;
+    const diff = rate - avgRate;
+    let badge, rateColor;
+    if (Math.abs(diff) >= threshRed) {
+      badge = `<span class="badge b-red">🔴 要対応</span>`;
+      rateColor = 'color:var(--danger);font-weight:700';
+    } else if (Math.abs(diff) >= threshYellow) {
+      badge = `<span class="badge b-yellow">🟡 要注意</span>`;
+      rateColor = 'color:var(--warn);font-weight:700';
+    } else {
+      badge = `<span class="badge b-green">✅ 正常</span>`;
+      rateColor = 'color:var(--accent2)';
+    }
+    const diffStr = (diff>=0?'+':'')+diff.toFixed(1)+'pt';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono" style="text-align:center">${s.id}</td>
+      <td>${s.name}</td>
+      <td style="text-align:center"><span class="badge b-purple">${s.type}</span></td>
+      <td style="text-align:center">${s.city}</td>
+      <td class="mono" style="text-align:right">${s.sales.toLocaleString()}</td>
+      <td class="mono" style="text-align:right">${s.cost.toLocaleString()}</td>
+      <td class="mono" style="text-align:right;${rateColor}">${rate.toFixed(1)}%</td>
+      <td class="mono" style="text-align:right;${Math.abs(diff)>=threshRed?'color:var(--danger)':Math.abs(diff)>=threshYellow?'color:var(--warn)':'color:var(--accent2)'}">${diffStr}</td>
+      <td>${badge}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ===== Payment table =====
+function renderPaymentTable() {
+  const tbody = document.getElementById('payment-tbody');
+  tbody.innerHTML = '';
+  payments.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align:center">${p.date}</td>
+      <td><span class="badge b-purple">${p.from}</span></td>
+      <td class="mono" style="text-align:right">${p.amount.toLocaleString()}</td>
+      <td style="text-align:center">${p.period}</td>
+      <td>${p.note}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ===== Credit match =====
+function runCreditMatch() {
+  const visaFee = parseFloat(document.getElementById('visa-fee').value)/100;
+  const jcbFee = parseFloat(document.getElementById('jcb-fee').value)/100;
+
+  const arData = [
+    {label:"VISA上旬",amount:8660000,card:"VISA"},
+    {label:"JCB上旬",amount:3270000,card:"JCB"},
+    {label:"AMEX上旬",amount:1090000,card:"AMEX"},
+    {label:"Master上旬",amount:2210000,card:"Mastercard"},
+    {label:"PayPay上旬",amount:1280000,card:"PayPay"},
+    {label:"交通系上旬",amount:920000,card:"交通系"},
+    {label:"その他（レジミス）",amount:850000,card:"その他"},
+  ];
+
+  const result = document.getElementById('credit-result');
+  const wrap = document.getElementById('credit-result-wrap');
+  wrap.classList.add('show');
+  result.innerHTML = `<div class="card"><div class="loading"><div class="dots"><span></span><span></span><span></span></div>突合処理中...</div></div>`;
+
+  setTimeout(() => {
+    let matched = [];
+    let unmatched = [];
+    let totalFee = 0;
+
+    payments.forEach(p => {
+      const isJcb = ['JCB','AMEX'].includes(p.from);
+      const fee = isJcb ? jcbFee : visaFee;
+      const ar = arData.find(a => a.card === p.from);
+      if (ar) {
+        const halfAr = ar.amount / 2;
+        const expected = halfAr * (1 - fee);
+        const diff = p.amount - expected;
+        const feeAmt = Math.round(halfAr * fee);
+        totalFee += feeAmt;
+        const confidence = Math.abs(diff) < halfAr * 0.03 ? 'high' : Math.abs(diff) < halfAr * 0.08 ? 'mid' : 'low';
+        matched.push({payment: p, ar, expected: Math.round(expected), diff: Math.round(diff), feeAmt, confidence});
+      } else {
+        unmatched.push(p);
+      }
+    });
+
+    const highCount = matched.filter(m=>m.confidence==='high').length;
+    const midCount = matched.filter(m=>m.confidence==='mid').length;
+    const totalPayment = payments.reduce((s,p)=>s+p.amount,0);
+
+    result.innerHTML = `
+      <div class="stat-grid" style="margin-bottom:18px;">
+        <div class="stat-box"><div class="lbl">突合成功</div><div class="val text-green">${matched.length}<small style="font-size:13px">件</small></div></div>
+        <div class="stat-box"><div class="lbl">高信頼度</div><div class="val text-accent">${highCount}<small style="font-size:13px">件</small></div></div>
+        <div class="stat-box"><div class="lbl">要確認</div><div class="val text-yellow">${midCount}<small style="font-size:13px">件</small></div></div>
+        <div class="stat-box"><div class="lbl">手数料合計</div><div class="val text-yellow">${(totalFee/10000).toFixed(0)}<small style="font-size:13px">万円</small></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">突合結果一覧</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>入金日</th><th>カード会社</th><th style="text-align:right">入金額（円）</th>
+              <th style="text-align:right">期待入金額（円）</th><th style="text-align:right">差額（手数料）</th><th>信頼度</th>
+            </tr></thead>
+            <tbody>
+              ${matched.map(m=>`<tr>
+                <td style="text-align:center">${m.payment.date}</td>
+                <td><span class="badge b-purple">${m.payment.from}</span></td>
+                <td class="mono" style="text-align:right">${m.payment.amount.toLocaleString()}</td>
+                <td class="mono" style="text-align:right">${m.expected.toLocaleString()}</td>
+                <td class="mono text-yellow" style="text-align:right">-${m.feeAmt.toLocaleString()}</td>
+                <td>${m.confidence==='high'?'<span class="badge b-green">✅ 高信頼</span>':'<span class="badge b-yellow">🟡 要確認</span>'}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="alert-box alert-yellow" style="margin-top:16px;">
+        <strong>🟡 「クレジット/その他」850,000円が未突合</strong>
+        <ul>
+          <li>H03（難波店）・H07（上本町店）・M02（難波Men's）でレジ入力ミスが発生</li>
+          <li>本来VISAまたはJCBとして処理すべき売上が「その他」で計上されている</li>
+          <li>対応する入金の候補：VISA入金との差額を確認してください</li>
+          <li>店舗POSログとの照合が必要です</li>
+        </ul>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">仕訳ドラフト（承認後に確定）</div>
+        ${matched.slice(0,3).map(m=>`
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:10px;font-size:12px;">
+            <div style="color:var(--muted);margin-bottom:8px;">${m.payment.from} ${m.payment.period} → ${m.payment.date}入金</div>
+            <table style="font-family:var(--mono);">
+              <tr><td style="width:130px;color:var(--muted)">借方</td><td style="width:130px;color:var(--muted)">金額</td><td style="width:130px;color:var(--muted)">貸方</td><td style="color:var(--muted)">金額</td></tr>
+              <tr><td>普通預金</td><td>${m.payment.amount.toLocaleString()}円</td><td>売掛金</td><td>${(m.payment.amount+m.feeAmt).toLocaleString()}円</td></tr>
+              <tr><td>支払手数料</td><td>${m.feeAmt.toLocaleString()}円</td><td></td><td></td></tr>
+            </table>
+          </div>`).join('')}
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;">※ 先頭3件のみ表示。全${matched.length}件の仕訳ドラフトを生成済み。</p>
+      </div>
+      <div class="note">⚠️ 突合結果は参考候補です。必ず内容を確認のうえ承認してください。最終判断は税理士へ。</div>`;
+  }, 900);
+}
+
+// ===== Expense table =====
+function renderExpenseTable() {
+  const tbody = document.getElementById('expense-tbody');
+  tbody.innerHTML = '';
+  expenses.forEach(e => {
+    const isWarn = e.check === 'warn';
+    const checkCell = isWarn
+      ? `<span class="badge b-yellow">🟡 要確認</span><br><small style="color:var(--muted);font-size:10px;">${e.msg}</small>`
+      : `<span class="badge b-green">✅ OK</span>`;
+    const tr = document.createElement('tr');
+    if (isWarn) tr.style.background = 'rgba(255,204,68,0.05)';
+    tr.innerHTML = `
+      <td style="text-align:center">${e.date}</td>
+      <td>${e.to}</td>
+      <td>${e.subject}</td>
+      <td class="mono" style="text-align:right">${e.amount.toLocaleString()}</td>
+      <td style="text-align:center"><span class="badge ${e.tax==='不課税'?'b-purple':e.tax==='非課税'?'b-green':'b-yellow'}">${e.tax}</span></td>
+      <td>${checkCell}</td>
+      <td style="font-size:11px;color:var(--muted)">${e.note}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ===== Init =====
+renderStoreTable();
+renderPaymentTable();
+renderExpenseTable();
+</script>
+</body>
+</html>
